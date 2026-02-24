@@ -1,5 +1,62 @@
 # FV-SEC001 - Software Engineer Challenge — Ad Performance Aggregator
 
+## Solution
+
+### Overview
+
+Implemented a Go CLI (`aggregator.go`) that performs campaign-level aggregation from CSV input and exports:
+
+- Top 10 campaigns by highest CTR
+- Top 10 campaigns by lowest CPA (excluding zero-conversion campaigns)
+
+The implementation is structured for large-file processing and predictable memory usage.
+
+### Execution Strategy for Large CSV (~1GB)
+
+- Use a streaming CSV reader (single pass over input).
+- Aggregate in memory with a hash map keyed by `campaign_id`.
+- Compute final metrics (`CTR`, `CPA`) from aggregated totals.
+- Select top results using bounded Top-K heaps (size 10), avoiding full sorting of all rows.
+
+This approach is designed to minimize disk I/O and avoid loading the full dataset into memory.
+
+### CLI Usage
+
+Prerequisite: provide the dataset locally (the large CSV is assumed not committed to this repository).
+
+```bash
+go run aggregator.go --input ad_data.csv --output results/
+```
+
+Optional:
+
+```bash
+go run aggregator.go --input ad_data.csv --output results/ --top-k 10
+```
+
+### Output Files
+
+The CLI writes:
+
+- `results/top10_ctr.csv`: top campaigns ordered by CTR descending
+- `results/top10_cpa.csv`: top campaigns ordered by CPA ascending (excluding `conversions = 0`)
+
+Both files include:
+`campaign_id,total_impressions,total_clicks,total_spend,total_conversions,CTR,CPA`
+
+### Performance Considerations
+
+- Single-pass streaming keeps memory bounded by campaign cardinality, not row count.
+- Hash aggregation avoids expensive sort-based group-by over raw rows.
+- Top-K heap selection avoids full ranking sort when only 10 rows are required.
+- Buffered file reading is used to reduce read overhead.
+
+### AI Usage Note
+
+AI-assisted development was used for implementation and iteration. Prompt history is documented in `PROMPTS.md`.
+
+---
+
 ## Introduction
 This is a data processing challenge for Developer candidates applying to our company.  
 You will work with a large CSV dataset (~1GB) containing advertising performance records.
